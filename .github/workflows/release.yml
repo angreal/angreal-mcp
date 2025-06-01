@@ -27,7 +27,7 @@ jobs:
         run: cargo build --release
 
       - name: Test
-        run: angreal test
+        run: cargo test
 
       - name: Publish to crates.io
         run: cargo publish --token ${CRATES_TOKEN}

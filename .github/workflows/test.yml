@@ -29,6 +29,5 @@ jobs:
     - name: Build project
       run: cargo build --release
 
-
-    - name: Test MCP Server Core Functionality
-      run: angreal test
+    - name: Cargo Test
+      run: cargo test
