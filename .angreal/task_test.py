@@ -12,6 +12,11 @@ def run_mcp_tests():
     print("\nBuilding release version...")
     subprocess.run(["cargo", "build", "--release"], check=True)
     
+    # Get the absolute path to the binary using angreal.get_root()
+    project_root = os.path.dirname(angreal.get_root())  # Get parent of .angreal directory
+    binary_path = os.path.join(project_root, "target", "release", "angreal_mcp")
+    print(f"\nUsing binary at: {binary_path}")
+    
     # Test MCP server initialization
     print("\nTesting MCP server initialization...")
     init_cmd = {
@@ -27,7 +32,7 @@ def run_mcp_tests():
             }
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(init_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(init_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "protocolVersion" not in str(response["result"]):
@@ -47,7 +52,7 @@ def run_mcp_tests():
         "id": 1,
         "method": "tools/list"
     }
-    result = subprocess.run(f"echo '{json.dumps(list_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(list_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "tools" not in response["result"]:
@@ -76,7 +81,7 @@ def run_mcp_tests():
             "arguments": {}
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(check_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(check_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "content" not in response["result"]:
@@ -107,7 +112,7 @@ def run_mcp_tests():
             }
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(tree_json_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(tree_json_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "content" not in response["result"]:
@@ -145,7 +150,7 @@ def run_mcp_tests():
             }
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(tree_human_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(tree_human_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "content" not in response["result"]:
@@ -200,7 +205,7 @@ def run_mcp_tests():
             }
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(mcp_cmd1)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(mcp_cmd1)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "content" not in response["result"]:
@@ -231,7 +236,7 @@ def run_mcp_tests():
             }
         }
     }
-    result = subprocess.run(f"echo '{json.dumps(mcp_cmd2)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(mcp_cmd2)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "result" not in response or "content" not in response["result"]:
@@ -256,7 +261,7 @@ def run_mcp_tests():
         "id": 1,
         "method": "invalid/method"
     }
-    result = subprocess.run(f"echo '{json.dumps(error_cmd)}' | ./target/release/angreal_mcp", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"echo '{json.dumps(error_cmd)}' | {binary_path}", shell=True, capture_output=True, text=True)
     try:
         response = json.loads(result.stdout)
         if "error" not in response or response["error"]["message"] != "Method not found":
