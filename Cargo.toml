@@ -2,12 +2,12 @@
 name = "angreal_mcp"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Dylan Storey <dylan.storey@gmail.com>"]
 description = "MCP (Model Context Protocol) server for angreal project discovery and automation"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/angreal-mcp"
-homepage = "https://github.com/yourusername/angreal-mcp"
-documentation = "https://github.com/yourusername/angreal-mcp#readme"
+repository = "https://github.com/colliery-io/angreal-mcp"
+homepage = "https://github.com/colliery-io/angreal-mcp"
+documentation = "https://github.com/colliery-io/angreal-mcp#readme"
 readme = "README.md"
 keywords = ["mcp", "angreal", "automation", "ai", "cli"]
 categories = ["command-line-utilities", "development-tools"]
