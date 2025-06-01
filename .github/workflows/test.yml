@@ -29,8 +29,6 @@ jobs:
     - name: Build project
       run: cargo build --release
 
-    - name: Run Rust tests
-      run: cargo test
 
     - name: Test MCP Server Core Functionality
       run: angreal test
