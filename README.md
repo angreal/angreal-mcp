@@ -16,13 +16,31 @@ This server exposes angreal's command tree structure to MCP-compatible clients, 
 
 ## Installation
 
-### Using Cargo (Recommended)
+### Method 1: Using Claude CLI (Easiest)
+
+If you have Claude Code installed, you can use the built-in MCP management:
 
 ```bash
-cargo install angreal_mcp
+# Install and configure in one command
+claude mcp add angreal -s user -- angreal_mcp
+
+# Or if angreal_mcp is not in PATH, use full path
+claude mcp add angreal -s user -- ~/.cargo/bin/angreal_mcp
 ```
 
-This installs the `angreal_mcp` binary to `~/.cargo/bin/` which is automatically in your PATH.
+This automatically:
+- Installs the MCP server configuration
+- Sets up the proper permissions
+- Restarts Claude services
+
+### Method 2: Using Cargo + Manual Config
+
+```bash
+# First install the binary
+cargo install angreal_mcp
+
+# Then manually configure (see configuration sections below)
+```
 
 ### Alternative Installation Methods
 
@@ -35,6 +53,10 @@ cargo binstall angreal_mcp
 
 # Update to latest version
 cargo install angreal_mcp --force
+
+# Using community MCP manager
+npm install -g mcpm
+mcpm install angreal_mcp
 ```
 
 ## Usage
@@ -43,18 +65,22 @@ cargo install angreal_mcp --force
 
 Claude Code has built-in MCP support. Here's how to set it up:
 
-#### 1. Install the Server
+#### Option A: One-Command Setup (Recommended)
 
 ```bash
-# Install via cargo (easiest method)
+# Install binary and configure automatically
 cargo install angreal_mcp
-
-# Verify installation
-angreal_mcp --help
+claude mcp add angreal -s user -- angreal_mcp
 ```
 
-#### 2. Configure for Claude Code
+#### Option B: Manual Setup
 
+**1. Install the Server**
+```bash
+cargo install angreal_mcp
+```
+
+**2. Configure for Claude Code**
 Create or update your Claude Code MCP configuration file at `~/.config/claude-code/mcp_servers.json`:
 
 ```json

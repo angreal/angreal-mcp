@@ -38,11 +38,11 @@ async fn test_tools_list() {
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 2);
-    
+
     let tools = &response["result"]["tools"];
     assert!(tools.is_array());
-    assert_eq!(tools.as_array().unwrap().len(), 1);
-    assert_eq!(tools[0]["name"], "angreal_tree");
+    assert_eq!(tools.as_array().unwrap().len(), 3);
+    assert_eq!(tools[0]["name"], "angreal_check");
 }
 
 #[tokio::test]
@@ -77,26 +77,25 @@ async fn test_malformed_json() {
 // Helper function to simulate request handling without running the full server
 async fn handle_request_string(request_str: String) -> String {
     use angreal_mcp::mcp::{JsonRpcRequest, McpServer};
-    
+
     let server = McpServer::new();
-    
+
     match serde_json::from_str::<JsonRpcRequest>(&request_str) {
-        Ok(request) => {
-            match server.handle_request(request).await {
-                Ok(response) => serde_json::to_string(&response).unwrap(),
-                Err(e) => json!({
-                    "jsonrpc": "2.0",
-                    "id": null,
-                    "error": {
-                        "code": -32603,
-                        "message": "Internal error",
-                        "data": {
-                            "details": e.to_string()
-                        }
+        Ok(request) => match server.handle_request(request).await {
+            Ok(response) => serde_json::to_string(&response).unwrap(),
+            Err(e) => json!({
+                "jsonrpc": "2.0",
+                "id": null,
+                "error": {
+                    "code": -32603,
+                    "message": "Internal error",
+                    "data": {
+                        "details": e.to_string()
                     }
-                }).to_string(),
-            }
-        }
+                }
+            })
+            .to_string(),
+        },
         Err(_) => json!({
             "jsonrpc": "2.0",
             "id": null,
@@ -104,6 +103,8 @@ async fn handle_request_string(request_str: String) -> String {
                 "code": -32700,
                 "message": "Parse error"
             }
-        }).to_string(),
+        })
+        .to_string(),
     }
 }
+

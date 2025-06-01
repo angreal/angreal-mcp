@@ -1,0 +1,36 @@
+name: Test Angreal MCP Server
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test MCP Server
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install angreal
+      run: pip install angreal
+
+    - name: Build project
+      run: cargo build --release
+
+    - name: Run Rust tests
+      run: cargo test
+
+    - name: Test MCP Server Core Functionality
+      run: angreal test

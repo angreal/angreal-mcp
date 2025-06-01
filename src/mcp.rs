@@ -74,9 +74,17 @@ pub struct McpServer {
 
 impl McpServer {
     pub fn new() -> Self {
+        let is_angreal_project = std::path::Path::new(".angreal").exists();
+
+        let context_hint = if is_angreal_project {
+            "NOTE: The server detected a .angreal/ directory in the current working directory, indicating this IS an angreal project. You can confidently use angreal tools here."
+        } else {
+            "NOTE: The server did not detect a .angreal/ directory in the current working directory. This may not be an angreal project."
+        };
+
         let angreal_check_tool = Tool {
             name: "angreal_check".to_string(),
-            description: "Check if the current directory is an angreal project and get project status. Use this tool when:
+            description: format!("Check if the current directory is an angreal project and get project status. Use this tool when:
 • You're unsure if you're in an angreal project
 • User asks about project type or available automation
 • You want to detect angreal capabilities before offering angreal-specific help
@@ -88,7 +96,9 @@ This tool will:
 • Determine project initialization status
 • Provide guidance on next steps if project is not initialized
 
-Use this FIRST before using angreal_tree if you're uncertain about the project type.".to_string(),
+{}
+
+Use this FIRST before using angreal_tree if you're uncertain about the project type.", context_hint),
             input_schema: json!({
                 "type": "object",
                 "properties": {}
@@ -97,7 +107,7 @@ Use this FIRST before using angreal_tree if you're uncertain about the project t
 
         let angreal_tree_tool = Tool {
             name: "angreal_tree".to_string(),
-            description: "Discover available tasks and commands in an angreal project. Use this tool when:
+            description: format!("Discover available tasks and commands in an angreal project. Use this tool when:
 • User asks 'what can I run?', 'what tasks are available?', 'what commands exist?', or similar questions about project capabilities
 • You've confirmed you're in an angreal project (use angreal_check first if unsure)
 • User mentions running tasks, automation, or build commands in an angreal project
@@ -106,7 +116,9 @@ Use this FIRST before using angreal_tree if you're uncertain about the project t
 
 This tool returns structured information about all available angreal commands, task groups, and their organization. It helps users understand what they can do in their angreal project without having to remember command names.
 
-TIP: If this tool fails with 'not in angreal project' error, the project may need initialization. Check with angreal_check first.".to_string(),
+{}
+
+TIP: If this tool fails with 'not in angreal project' error, the project may need initialization. Check with angreal_check first.", context_hint),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -120,8 +132,50 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
             }),
         };
 
+        let angreal_run_tool = Tool {
+            name: "angreal_run".to_string(),
+            description: format!("Execute an angreal command or task directly. Use this tool when:
+• User asks to run a specific task (e.g., 'run tests', 'build the project', 'lint the code')
+• User wants to execute any angreal command without manual confirmation
+• You want to automate angreal task execution based on user requests
+• User asks to 'do X' where X is an available angreal task
+
+This tool executes the angreal command and returns the output directly. No need to ask for permission - just run it!
+
+{}
+
+Supports complex commands including:
+- Simple tasks: {{ \"command\": \"test\" }}
+- Tasks with options: {{ \"command\": \"build\", \"args\": [\"--release\"] }}
+- Subcommands: {{ \"command\": \"task build\", \"args\": [\"--target\", \"x86_64\"] }}
+- Init with variables: {{ \"command\": \"init template\", \"args\": [\"--var\", \"name=MyProject\"] }}
+
+Examples:
+- angreal_run({{ \"command\": \"test\" }}) - runs 'angreal test'
+- angreal_run({{ \"command\": \"build\", \"args\": [\"--release\"] }}) - runs 'angreal build --release'
+- angreal_run({{ \"command\": \"task deploy\", \"args\": [\"--env\", \"production\"] }}) - runs 'angreal task deploy --env production'", context_hint),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "description": "The angreal command/task to execute. Can include subcommands (e.g., 'test', 'build', 'task deploy', 'init template-name')",
+                        "examples": ["test", "build", "lint", "task deploy", "init my-template"]
+                    },
+                    "args": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Additional arguments, options, and flags to pass to the command",
+                        "examples": [["--release"], ["--env", "production"], ["--var", "name=value"]],
+                        "default": []
+                    }
+                },
+                "required": ["command"]
+            }),
+        };
+
         Self {
-            tools: vec![angreal_check_tool, angreal_tree_tool],
+            tools: vec![angreal_check_tool, angreal_tree_tool, angreal_run_tool],
         }
     }
 
@@ -131,7 +185,9 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
             "tools/list" => self.handle_tools_list(request.id).await,
             "tools/call" => {
                 let params: ToolCallParams = serde_json::from_value(
-                    request.params.ok_or_else(|| anyhow::anyhow!("Missing params"))?,
+                    request
+                        .params
+                        .ok_or_else(|| anyhow::anyhow!("Missing params"))?,
                 )?;
                 self.handle_tool_call(request.id, params).await
             }
@@ -155,12 +211,33 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
             },
         };
 
+        // Check project status during initialization
+        let project_status = match crate::angreal::check_angreal_project_status().await {
+            Ok(status) => status,
+            Err(_) => "Unable to determine project status".to_string(),
+        };
+
+        let is_angreal_project = std::path::Path::new(".angreal").exists();
+        let current_dir = std::env::current_dir()
+            .map(|d| d.display().to_string())
+            .unwrap_or_else(|_| "unknown".to_string());
+
         Ok(JsonRpcResponse {
             jsonrpc: "2.0".to_string(),
             id,
             result: Some(json!({
-                "protocolVersion": "1.0",
+                "protocolVersion": "2024-11-05",
                 "capabilities": capabilities,
+                "serverInfo": {
+                    "name": "angreal_mcp",
+                    "version": "0.1.0",
+                    "description": "MCP server for angreal project discovery and automation",
+                    "context": {
+                        "currentDirectory": current_dir,
+                        "isAngrealProject": is_angreal_project,
+                        "projectStatus": project_status
+                    }
+                }
             })),
             error: None,
         })
@@ -183,16 +260,63 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
         params: ToolCallParams,
     ) -> Result<JsonRpcResponse> {
         match params.name.as_str() {
-            "angreal_check" => {
-                match crate::angreal::check_angreal_project_status().await {
-                    Ok(status_info) => Ok(JsonRpcResponse {
+            "angreal_check" => match crate::angreal::check_angreal_project_status().await {
+                Ok(status_info) => Ok(JsonRpcResponse {
+                    jsonrpc: "2.0".to_string(),
+                    id,
+                    result: Some(json!({
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": status_info
+                            }
+                        ]
+                    })),
+                    error: None,
+                }),
+                Err(e) => Ok(JsonRpcResponse {
+                    jsonrpc: "2.0".to_string(),
+                    id,
+                    result: None,
+                    error: Some(JsonRpcError {
+                        code: -32603,
+                        message: "Internal error".to_string(),
+                        data: Some(json!({
+                            "details": e.to_string(),
+                        })),
+                    }),
+                }),
+            },
+            "angreal_run" => {
+                let command = params
+                    .arguments
+                    .as_ref()
+                    .and_then(|args| args.get("command"))
+                    .and_then(|c| c.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing required 'command' parameter"))?;
+
+                let args: Vec<String> = params
+                    .arguments
+                    .as_ref()
+                    .and_then(|args| args.get("args"))
+                    .and_then(|a| a.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(String::from)
+                            .collect()
+                    })
+                    .unwrap_or_else(Vec::new);
+
+                match crate::angreal::run_angreal_command(command, &args).await {
+                    Ok(output) => Ok(JsonRpcResponse {
                         jsonrpc: "2.0".to_string(),
                         id,
                         result: Some(json!({
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": status_info
+                                    "text": format!("$ angreal {}\n\n{}", command, output)
                                 }
                             ]
                         })),
@@ -204,7 +328,7 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
                         result: None,
                         error: Some(JsonRpcError {
                             code: -32603,
-                            message: "Internal error".to_string(),
+                            message: "Command execution failed".to_string(),
                             data: Some(json!({
                                 "details": e.to_string(),
                             })),
@@ -263,3 +387,4 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
         }
     }
 }
+

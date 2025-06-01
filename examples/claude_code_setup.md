@@ -11,10 +11,26 @@ Ensure you have:
 - [Rust toolchain](https://rustup.rs/) for building the server
 - [angreal](https://github.com/angreal/angreal) installed: `pip install angreal`
 
-### 2. Install the MCP Server
+### 2. Install and Configure
+
+#### Option A: Automatic Setup (Easiest)
 
 ```bash
-# Install via cargo (recommended)
+# Install the binary
+cargo install angreal_mcp
+
+# Add to Claude Code automatically
+claude mcp add angreal -s user -- angreal_mcp
+
+# Verify it was added
+claude mcp list
+```
+
+#### Option B: Manual Setup
+
+**Install the MCP Server**
+```bash
+# Install via cargo
 cargo install angreal_mcp
 
 # Verify installation
@@ -22,12 +38,7 @@ angreal_mcp --help
 which angreal_mcp
 ```
 
-The binary will be installed to `~/.cargo/bin/angreal_mcp` which is automatically in your PATH.
-
-### 3. Configure Claude Code
-
-Create the MCP configuration directory and file:
-
+**Configure Claude Code Manually**
 ```bash
 # Create config directory if it doesn't exist
 mkdir -p ~/.config/claude-code

@@ -57,3 +57,5 @@ examples/test_*
 # IDE and editor files
 *.sublime-*
 .vimrc.localwip/*
+
+.claude/

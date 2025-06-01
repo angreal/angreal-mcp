@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "angreal": {
-      "command": "angreal_mcp",
-      "args": [],
-      "cwd": "/path/to/your/angreal/project"
-    }
-  }
-}
