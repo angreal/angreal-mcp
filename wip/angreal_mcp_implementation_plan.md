@@ -75,7 +75,7 @@ angreal_mcp/
      - `serde` + `serde_json` for JSON handling
      - `tokio` for async (if needed)
      - `anyhow` for error handling
-   
+
 2. **Implement MCP protocol basics**
    - Message parsing and validation
    - Standard MCP responses
@@ -217,9 +217,9 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "an
 ```
 User: "Run the tests for this project"
 
-AI: 
+AI:
 1. Calls angreal_tree to discover available commands
-2. Sees "test" group with "python", "rust", "all" subcommands  
+2. Sees "test" group with "python", "rust", "all" subcommands
 3. Suggests/executes: `angreal test all`
 ```
 
@@ -272,7 +272,7 @@ AI:
 ## Timeline Estimate
 
 - **Phase 1**: 2-3 days (basic working server)
-- **Phase 2**: 2-3 days (robust implementation) 
+- **Phase 2**: 2-3 days (robust implementation)
 - **Phase 3**: 2-3 days (testing, docs, distribution)
 
 **Total**: ~1-2 weeks for production-ready MCP server

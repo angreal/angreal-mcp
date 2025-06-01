@@ -27,4 +27,3 @@ tokio-test = "0.4"
 [[bin]]
 name = "angreal_mcp"
 path = "src/main.rs"
-

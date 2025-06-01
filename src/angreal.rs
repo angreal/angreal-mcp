@@ -231,4 +231,3 @@ fn parse_command_and_args(command: &str, args: &[String]) -> Result<Vec<String>>
 
     Ok(all_args)
 }
-
