@@ -54,16 +54,17 @@ pub async fn check_angreal_available() -> Result<bool> {
 
 pub async fn check_angreal_project_status() -> Result<String> {
     let mut status_parts = Vec::new();
+    let mut command_tree = None;
 
     // Check if angreal is installed
     let angreal_available = match Command::new("angreal").arg("--version").output() {
         Ok(output) if output.status.success() => {
             let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            status_parts.push(format!("✓ Angreal is installed: {}", version));
+            status_parts.push(format!(" Angreal is installed: {}", version));
             true
         }
         _ => {
-            status_parts.push("✗ Angreal is not installed or not available in PATH".to_string());
+            status_parts.push("  Angreal is not installed or not available in PATH".to_string());
             status_parts.push("  Install angreal first: pip install angreal".to_string());
             false
         }
@@ -78,14 +79,14 @@ pub async fn check_angreal_project_status() -> Result<String> {
             .push("✗ No .angreal/ directory found - this is not an angreal project".to_string());
     }
 
-    // If both are available, check project initialization status
+    // If both are available, check project initialization status and get command tree
     if angreal_available && angreal_folder_exists {
-        match Command::new("angreal").arg("tree").output() {
+        match Command::new("angreal").arg("tree").arg("--json").output() {
             Ok(output) if output.status.success() => {
                 let tree_output = String::from_utf8_lossy(&output.stdout);
                 if tree_output.trim().is_empty() || tree_output.contains("No commands") {
                     status_parts.push(
-                        "⚠ Project appears to be initialized but has no commands defined"
+                        "  Project appears to be initialized but has no commands defined"
                             .to_string(),
                     );
                     status_parts
@@ -94,8 +95,7 @@ pub async fn check_angreal_project_status() -> Result<String> {
                     status_parts.push(
                         "✓ Project is properly initialized with available commands".to_string(),
                     );
-                    status_parts
-                        .push("  Use 'angreal_tree' tool to see available commands".to_string());
+                    command_tree = Some(tree_output.to_string());
                 }
             }
             Ok(output) => {
@@ -127,7 +127,14 @@ pub async fn check_angreal_project_status() -> Result<String> {
         status_parts.push(format!("\nCurrent directory: {}", current_dir.display()));
     }
 
-    Ok(status_parts.join("\n"))
+    // Combine status and command tree if available
+    let mut result = status_parts.join("\n");
+    if let Some(tree) = command_tree {
+        result.push_str("\n\nAvailable Commands:\n");
+        result.push_str(&tree);
+    }
+
+    Ok(result)
 }
 
 pub async fn run_angreal_command(command: &str, args: &[String]) -> Result<String> {

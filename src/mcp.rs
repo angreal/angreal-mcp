@@ -2,6 +2,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+// Include prompt files at compile time
+const ANGREAL_CHECK_PROMPT: &str = include_str!("prompts/angreal_check.md");
+const ANGREAL_TREE_PROMPT: &str = include_str!("prompts/angreal_tree.md");
+const ANGREAL_RUN_PROMPT: &str = include_str!("prompts/angreal_run.md");
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
     pub jsonrpc: String,
@@ -84,21 +89,7 @@ impl McpServer {
 
         let angreal_check_tool = Tool {
             name: "angreal_check".to_string(),
-            description: format!("Check if the current directory is an angreal project and get project status. Use this tool when:
-• You're unsure if you're in an angreal project
-• User asks about project type or available automation
-• You want to detect angreal capabilities before offering angreal-specific help
-• Need to understand the project state (initialized vs uninitialized)
-
-This tool will:
-• Detect if angreal is installed and available
-• Check if current directory is an angreal project (.angreal/ folder exists)
-• Determine project initialization status
-• Provide guidance on next steps if project is not initialized
-
-{}
-
-Use this FIRST before using angreal_tree if you're uncertain about the project type.", context_hint),
+            description: ANGREAL_CHECK_PROMPT.replace("{context_hint}", context_hint),
             input_schema: json!({
                 "type": "object",
                 "properties": {}
@@ -107,18 +98,7 @@ Use this FIRST before using angreal_tree if you're uncertain about the project t
 
         let angreal_tree_tool = Tool {
             name: "angreal_tree".to_string(),
-            description: format!("Discover available tasks and commands in an angreal project. Use this tool when:
-• User asks 'what can I run?', 'what tasks are available?', 'what commands exist?', or similar questions about project capabilities
-• You've confirmed you're in an angreal project (use angreal_check first if unsure)
-• User mentions running tasks, automation, or build commands in an angreal project
-• User wants to understand what project-specific automation is available
-• Need to discover project structure and available commands
-
-This tool returns structured information about all available angreal commands, task groups, and their organization. It helps users understand what they can do in their angreal project without having to remember command names.
-
-{}
-
-TIP: If this tool fails with 'not in angreal project' error, the project may need initialization. Check with angreal_check first.", context_hint),
+            description: ANGREAL_TREE_PROMPT.replace("{context_hint}", context_hint),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -134,26 +114,7 @@ TIP: If this tool fails with 'not in angreal project' error, the project may nee
 
         let angreal_run_tool = Tool {
             name: "angreal_run".to_string(),
-            description: format!("Execute an angreal command or task directly. Use this tool when:
-• User asks to run a specific task (e.g., 'run tests', 'build the project', 'lint the code')
-• User wants to execute any angreal command without manual confirmation
-• You want to automate angreal task execution based on user requests
-• User asks to 'do X' where X is an available angreal task
-
-This tool executes the angreal command and returns the output directly. No need to ask for permission - just run it!
-
-{}
-
-Supports complex commands including:
-- Simple tasks: {{ \"command\": \"test\" }}
-- Tasks with options: {{ \"command\": \"build\", \"args\": [\"--release\"] }}
-- Subcommands: {{ \"command\": \"task build\", \"args\": [\"--target\", \"x86_64\"] }}
-- Init with variables: {{ \"command\": \"init template\", \"args\": [\"--var\", \"name=MyProject\"] }}
-
-Examples:
-- angreal_run({{ \"command\": \"test\" }}) - runs 'angreal test'
-- angreal_run({{ \"command\": \"build\", \"args\": [\"--release\"] }}) - runs 'angreal build --release'
-- angreal_run({{ \"command\": \"task deploy\", \"args\": [\"--env\", \"production\"] }}) - runs 'angreal task deploy --env production'", context_hint),
+            description: ANGREAL_RUN_PROMPT.replace("{context_hint}", context_hint),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -306,7 +267,7 @@ Examples:
                             .map(String::from)
                             .collect()
                     })
-                    .unwrap_or_else(Vec::new);
+                    .unwrap_or_default();
 
                 match crate::angreal::run_angreal_command(command, &args).await {
                     Ok(output) => Ok(JsonRpcResponse {
@@ -385,5 +346,11 @@ Examples:
                 }),
             }),
         }
+    }
+}
+
+impl Default for McpServer {
+    fn default() -> Self {
+        Self::new()
     }
 }
