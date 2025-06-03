@@ -27,3 +27,20 @@ def command_2(parameter=None):
 
     print(f"✓ Successfully executed call-testing command-2 with parameter: {parameter}")
     print("This demonstrates handling of value parameters in complex commands")
+
+@call_testing_group
+@angreal.command(name="command-3", about="Third test command that requires a positional argument")
+@angreal.argument(name='filename', help='Required filename argument', required=True)
+@angreal.argument(name='yell', short='y', long='verbose', takes_value=False, is_flag=True, help='Verbose output', required=False)
+def command_3(filename=None, yell=False):
+    """Third test command"""
+    if not filename:
+        print("ERROR: command-3 requires a filename argument", file=sys.stderr)
+        sys.exit(1)
+
+    if yell:
+        print(f"✓ SUCCESSFULLY EXECUTED CALL-TESTING COMMAND-3 WITH FILENAME: {filename.upper()} (YELL MODE!)")
+        print("THIS DEMONSTRATES HANDLING OF POSITIONAL ARGUMENTS AND OPTIONAL FLAGS IN COMPLEX COMMANDS")
+    else:
+        print(f"✓ Successfully executed call-testing command-3 with filename: {filename}")
+        print("This demonstrates handling of positional arguments in complex commands")

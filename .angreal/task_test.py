@@ -140,14 +140,39 @@ def run_mcp_tests():
                 sys.exit(1)
             content = response["result"]["content"][0]["text"]
             tree_data = json.loads(content)
-            # Check for presence of our test commands in the tree
-            if "children" not in tree_data or "call-testing" not in tree_data["children"]:
-                print("FAILED: angreal_tree tool did not return expected command structure")
+            # Check for presence of our test commands in the new format
+            if "commands" not in tree_data:
+                print("FAILED: angreal_tree tool did not return expected command structure (missing 'commands')")
                 print(f"Content: {content}")
                 sys.exit(1)
-            call_testing = tree_data["children"]["call-testing"]
-            if "children" not in call_testing or "command-1" not in call_testing["children"] or "command-2" not in call_testing["children"]:
+
+            # Find our test commands in the commands array
+            commands = tree_data["commands"]
+            command1 = None
+            command2 = None
+            command3 = None
+
+            for cmd in commands:
+                if cmd.get("name") == "command-1":
+                    command1 = cmd
+                elif cmd.get("name") == "command-2":
+                    command2 = cmd
+                elif cmd.get("name") == "command-3":
+                    command3 = cmd
+
+            if not command1 or not command2 or not command3:
                 print("FAILED: angreal_tree tool did not return expected test commands")
+                print(f"Found commands: {[cmd.get('name') for cmd in commands]}")
+                print(f"Content: {content}")
+                sys.exit(1)
+
+            # Verify the commands have the correct group metadata
+            if command1.get("group") != "call-testing":
+                print("FAILED: command-1 does not have correct group metadata")
+                print(f"Content: {content}")
+                sys.exit(1)
+            if command2.get("group") != "call-testing":
+                print("FAILED: command-2 does not have correct group metadata")
                 print(f"Content: {content}")
                 sys.exit(1)
             print("PASSED: angreal_tree tool (JSON) successful")
@@ -177,8 +202,8 @@ def run_mcp_tests():
                 print(f"Response: {result.stdout}")
                 sys.exit(1)
             content = response["result"]["content"][0]["text"]
-            if "call-testing" not in content:
-                print("FAILED: angreal_tree tool did not return expected content")
+            if "command-1" not in content or "command-2" not in content:
+                print("FAILED: angreal_tree tool did not return expected commands")
                 print(f"Content: {content}")
                 sys.exit(1)
             print("PASSED: angreal_tree tool (human) successful")

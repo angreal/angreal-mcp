@@ -2,10 +2,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-// Include prompt files at compile time
-const ANGREAL_CHECK_PROMPT: &str = include_str!("prompts/angreal_check.md");
-const ANGREAL_TREE_PROMPT: &str = include_str!("prompts/angreal_tree.md");
-const ANGREAL_RUN_PROMPT: &str = include_str!("prompts/angreal_run.md");
+// Tool descriptions
+const ANGREAL_CHECK_DESC: &str = "Check if the current directory is an angreal project and get project status including available commands";
+const ANGREAL_TREE_DESC: &str =
+    "Get a structured view of all available angreal commands and tasks in the project";
+const ANGREAL_RUN_DESC: &str = "Execute an angreal command or task with optional arguments";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
@@ -51,12 +52,14 @@ pub struct ToolsCapability {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerCapabilities {
-    pub tools: ToolsServerCapability,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<ServerToolsCapability>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ToolsServerCapability {
-    pub r#static: Vec<Tool>,
+pub struct ServerToolsCapability {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list_changed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,17 +82,9 @@ pub struct McpServer {
 
 impl McpServer {
     pub fn new() -> Self {
-        let is_angreal_project = std::path::Path::new(".angreal").exists();
-
-        let context_hint = if is_angreal_project {
-            "NOTE: The server detected a .angreal/ directory in the current working directory, indicating this IS an angreal project. You can confidently use angreal tools here."
-        } else {
-            "NOTE: The server did not detect a .angreal/ directory in the current working directory. This may not be an angreal project."
-        };
-
         let angreal_check_tool = Tool {
             name: "angreal_check".to_string(),
-            description: ANGREAL_CHECK_PROMPT.replace("{context_hint}", context_hint),
+            description: ANGREAL_CHECK_DESC.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {}
@@ -98,7 +93,7 @@ impl McpServer {
 
         let angreal_tree_tool = Tool {
             name: "angreal_tree".to_string(),
-            description: ANGREAL_TREE_PROMPT.replace("{context_hint}", context_hint),
+            description: ANGREAL_TREE_DESC.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -114,7 +109,7 @@ impl McpServer {
 
         let angreal_run_tool = Tool {
             name: "angreal_run".to_string(),
-            description: ANGREAL_RUN_PROMPT.replace("{context_hint}", context_hint),
+            description: ANGREAL_RUN_DESC.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -167,9 +162,9 @@ impl McpServer {
 
     async fn handle_initialize(&self, id: Option<Value>) -> Result<JsonRpcResponse> {
         let capabilities = ServerCapabilities {
-            tools: ToolsServerCapability {
-                r#static: self.tools.clone(),
-            },
+            tools: Some(ServerToolsCapability {
+                list_changed: Some(false),
+            }),
         };
 
         // Check project status during initialization
@@ -183,6 +178,107 @@ impl McpServer {
             .map(|d| d.display().to_string())
             .unwrap_or_else(|_| "unknown".to_string());
 
+        // Extract available commands with full command strings using new format
+        let available_commands = if is_angreal_project {
+            match crate::angreal::get_angreal_tree("json").await {
+                Ok(tree_json) => {
+                    if let Ok(parsed) = serde_json::from_str::<Value>(&tree_json) {
+                        if let Some(commands) = parsed.get("commands").and_then(|c| c.as_array()) {
+                            commands
+                                .iter()
+                                .map(|cmd| {
+                                    let _name =
+                                        cmd.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                                    let path =
+                                        cmd.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                                    let description = cmd
+                                        .get("description")
+                                        .and_then(|d| d.as_str())
+                                        .unwrap_or("");
+
+                                    // Extract argument info
+                                    let mut args_info = String::new();
+                                    if let Some(arguments) =
+                                        cmd.get("arguments").and_then(|a| a.as_array())
+                                    {
+                                        let mut formatted_args = Vec::new();
+                                        for arg in arguments {
+                                            let flag = arg
+                                                .get("flag")
+                                                .and_then(|f| f.as_str())
+                                                .unwrap_or("");
+                                            let arg_type = arg
+                                                .get("type")
+                                                .and_then(|t| t.as_str())
+                                                .unwrap_or("");
+                                            let required = arg
+                                                .get("required")
+                                                .and_then(|r| r.as_bool())
+                                                .unwrap_or(false);
+
+                                            let formatted = match arg_type {
+                                                "flag" => flag.to_string(),
+                                                "parameter" => format!("{} <value>", flag),
+                                                "positional" => {
+                                                    // If positional has a flag (like --parameter), treat as parameter
+                                                    if !flag.is_empty() && flag.starts_with("--") {
+                                                        format!("{} <value>", flag)
+                                                    } else {
+                                                        // True positional argument
+                                                        format!(
+                                                            "<{}>",
+                                                            arg.get("name")
+                                                                .and_then(|n| n.as_str())
+                                                                .unwrap_or("arg")
+                                                        )
+                                                    }
+                                                }
+                                                _ => flag.to_string(),
+                                            };
+
+                                            if required {
+                                                formatted_args.push(formatted);
+                                            } else {
+                                                formatted_args.push(format!("[{}]", formatted));
+                                            }
+                                        }
+                                        if !formatted_args.is_empty() {
+                                            args_info = format!(" {}", formatted_args.join(" "));
+                                        }
+                                    }
+
+                                    format!("{}{} - {}", path, args_info, description)
+                                })
+                                .collect::<Vec<_>>()
+                        } else {
+                            vec![]
+                        }
+                    } else {
+                        vec![]
+                    }
+                }
+                Err(_) => vec![],
+            }
+        } else {
+            vec![]
+        };
+
+        let (server_name, description) = if is_angreal_project {
+            let cmd_count = available_commands.len();
+            (
+                "angreal_mcp (✓ Angreal Project)",
+                format!(
+                    "MCP server for angreal project automation ({} commands available)",
+                    cmd_count
+                ),
+            )
+        } else {
+            (
+                "angreal_mcp (⚠ Not Angreal Project)",
+                "MCP server for angreal project discovery and automation".to_string(),
+            )
+        };
+
         Ok(JsonRpcResponse {
             jsonrpc: "2.0".to_string(),
             id,
@@ -190,12 +286,13 @@ impl McpServer {
                 "protocolVersion": "2024-11-05",
                 "capabilities": capabilities,
                 "serverInfo": {
-                    "name": "angreal_mcp",
+                    "name": server_name,
                     "version": "0.1.0",
-                    "description": "MCP server for angreal project discovery and automation",
+                    "description": description,
                     "context": {
                         "currentDirectory": current_dir,
                         "isAngrealProject": is_angreal_project,
+                        "availableCommands": available_commands,
                         "projectStatus": project_status
                     }
                 }

@@ -22,7 +22,11 @@ async fn test_mcp_initialize() {
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
     assert!(response["result"]["protocolVersion"].is_string());
-    assert!(response["result"]["capabilities"]["tools"]["static"].is_array());
+    assert!(response["result"]["capabilities"]["tools"].is_object());
+    assert_eq!(
+        response["result"]["capabilities"]["tools"]["list_changed"],
+        false
+    );
 }
 
 #[tokio::test]
