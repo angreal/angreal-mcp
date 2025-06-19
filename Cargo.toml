@@ -1,6 +1,6 @@
 [package]
 name = "angreal_mcp"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Dylan Storey <dylan.storey@gmail.com>"]
 description = "MCP (Model Context Protocol) server for angreal project discovery and automation"
