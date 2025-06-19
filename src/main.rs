@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
     let mut stdout = tokio::io::stdout();
     let mut reader = BufReader::new(stdin);
 
-    eprintln!("Angreal MCP server started");
+    // Server initialization complete - ready for MCP communication
 
     let mut line = String::new();
 
@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
 
         match reader.read_line(&mut line).await {
             Ok(0) => {
-                eprintln!("EOF received, shutting down");
+                // EOF received, shutting down gracefully
                 break;
             }
             Ok(_) => {
@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
 
                 match serde_json::from_str::<JsonRpcRequest>(trimmed) {
                     Ok(request) => {
-                        eprintln!("Received request: {}", request.method);
+                        // Process request
 
                         match server.handle_request(request).await {
                             Ok(response) => {
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
                                 stdout.flush().await?;
                             }
                             Err(e) => {
-                                eprintln!("Error handling request: {}", e);
+                                // Error handling request
                                 let error_response = JsonRpcResponse {
                                     jsonrpc: "2.0".to_string(),
                                     id: None,
@@ -62,8 +62,8 @@ async fn main() -> Result<()> {
                             }
                         }
                     }
-                    Err(e) => {
-                        eprintln!("Failed to parse JSON-RPC request: {}", e);
+                    Err(_e) => {
+                        // Failed to parse JSON-RPC request
                         let error_response = JsonRpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id: None,
@@ -81,8 +81,8 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            Err(e) => {
-                eprintln!("Error reading from stdin: {}", e);
+            Err(_e) => {
+                // Error reading from stdin - terminate gracefully
                 break;
             }
         }

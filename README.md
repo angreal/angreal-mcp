@@ -90,25 +90,48 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "an
 
 ## Available Tools
 
-### `angreal_tree`
+### `angreal_check`
+Check if the current directory is an angreal project and get project status including available commands.
 
-Get the command tree structure of the current angreal project.
+### `angreal_tree`
+Get a structured view of all available angreal commands and tasks in the project.
 
 **Parameters:**
 - `format` (optional): Output format - `"json"` (default) or `"human"`
 
-**Example Response (JSON format):**
-```json
-{
-  "groups": [
-    {
-      "name": "test",
-      "commands": ["python", "rust", "all"]
-    }
-  ],
-  "commands": ["build", "deploy"]
-}
-```
+### `angreal_run`
+Execute an angreal command or task with optional arguments.
+
+**Parameters:**
+- `command` (required): The angreal command/task to execute
+- `args` (optional): Additional arguments and flags
+
+## Agent Usage Guide
+
+When working in angreal projects, use these tools for intelligent command discovery and execution:
+
+### Tool Usage Workflow
+1. **Start with discovery**: Use `angreal_check` to verify project status and capabilities
+2. **Explore commands**: Use `angreal_tree` to see available commands with rich metadata
+3. **Execute intelligently**: Use `angreal_run` with context-aware parameter selection
+
+### Best Practices
+- Always check `when_to_use` and `when_not_to_use` guidance from `angreal_tree`
+- Use parameter recommendations (`recommended_when`) for better results
+- Verify prerequisites before executing commands
+- Let command output and exit codes guide success validation
+
+### Common Patterns
+- **Setup workflows**: Run setup/install commands before build/test commands
+- **Development cycles**: Use test commands after code changes, build commands before deployment
+- **Parameter selection**: Use verbose flags when debugging, production flags for releases
+
+### Troubleshooting
+- If MCP server becomes unavailable, restart Claude Code to reinitialize
+- Check that angreal binary is installed and accessible in PATH
+- Verify you're in an angreal project directory (contains .angreal/ folder)
+
+The angreal MCP server provides enhanced command metadata including usage context, parameter guidance, and intelligent categorization to enable better automation decisions.
 
 ## Development
 

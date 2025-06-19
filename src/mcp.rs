@@ -3,10 +3,55 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 // Tool descriptions
-const ANGREAL_CHECK_DESC: &str = "Check if the current directory is an angreal project and get project status including available commands";
+const ANGREAL_CHECK_DESC: &str = "Check if the current directory is an angreal project and get project status including available commands
+
+When to use:
+- Starting work in a new directory to understand if angreal is available
+- Troubleshooting angreal-related issues
+- Getting an overview of project capabilities before using other tools
+
+When NOT to use:
+- If you already know this is an angreal project (use angreal_tree instead)
+- For executing commands (use angreal_run instead)
+
+Returns:
+Comprehensive status including installation status, project detection, and available commands";
+
 const ANGREAL_TREE_DESC: &str =
-    "Get a structured view of all available angreal commands and tasks in the project";
-const ANGREAL_RUN_DESC: &str = "Execute an angreal command or task with optional arguments";
+    "Get a structured view of all available angreal commands and tasks in the project
+
+When to use:
+- Discovering what commands are available in an angreal project
+- Understanding project structure before executing tasks
+- Planning automation workflows
+
+When NOT to use:
+- If you need to check if angreal is installed (use angreal_check first)
+- If you need to execute commands (use angreal_run instead)
+- In directories that aren't angreal projects
+
+Prerequisites: Must be in an angreal project directory with angreal installed
+
+Returns:
+Structured list of available commands, tasks, and their descriptions";
+
+const ANGREAL_RUN_DESC: &str = "Execute an angreal command or task with optional arguments
+
+When to use:
+- Running discovered angreal commands and tasks
+- Automating project workflows
+- Executing build, test, or deployment tasks
+
+When NOT to use:
+- Without first discovering available commands (use angreal_tree first)
+- In non-angreal projects (use angreal_check to verify)
+- For complex command chaining (execute commands individually)
+
+Prerequisites: Must be in an angreal project with angreal installed
+Success criteria: Command executes successfully with expected output
+
+Returns:
+Command output including both stdout and stderr for complete results";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
@@ -101,7 +146,7 @@ impl McpServer {
                         "type": "string",
                         "enum": ["human", "json"],
                         "default": "json",
-                        "description": "Output format - 'json' for structured data, 'human' for readable tree"
+                        "description": "Output format - 'json' for structured data that agents can parse, 'human' for readable tree display. Most agents should use 'json' for programmatic access."
                     }
                 }
             }),
@@ -115,13 +160,13 @@ impl McpServer {
                 "properties": {
                     "command": {
                         "type": "string",
-                        "description": "The angreal command/task to execute. Can include subcommands (e.g., 'test', 'build', 'task deploy', 'init template-name')",
+                        "description": "The angreal command/task to execute. Use angreal_tree first to discover available commands. Can include subcommands (e.g., 'test', 'build', 'task deploy', 'init template-name'). Avoid complex command chaining.",
                         "examples": ["test", "build", "lint", "task deploy", "init my-template"]
                     },
                     "args": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Additional arguments, options, and flags to pass to the command",
+                        "description": "Additional arguments, options, and flags to pass to the command. Each argument should be a separate array element for proper shell safety.",
                         "examples": [["--release"], ["--env", "production"], ["--var", "name=value"]],
                         "default": []
                     }

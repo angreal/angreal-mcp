@@ -13,13 +13,13 @@ impl std::fmt::Display for AngrealError {
         match self {
             AngrealError::NotInstalled => write!(
                 f,
-                "The 'angreal' command is not available. Please install angreal first."
+                "Angreal is not installed or not available in PATH.\n\nNext steps:\n1. Install angreal: pip install angreal\n2. Verify installation: angreal --version\n3. Try using angreal_check again"
             ),
             AngrealError::NotInProject => write!(
                 f,
-                "Not in an angreal project. Please run this command from within an angreal project directory."
+                "This directory is not an angreal project.\n\nNext steps:\n1. Navigate to an angreal project directory\n2. Or create a new project: angreal init <template-url>\n3. Use angreal_check to verify project status"
             ),
-            AngrealError::ExecutionFailed(msg) => write!(f, "Angreal execution failed: {}", msg),
+            AngrealError::ExecutionFailed(msg) => write!(f, "Angreal command failed.\n\nError details:\n{}\n\nNext steps:\n1. Verify command syntax with angreal_tree\n2. Check project status with angreal_check\n3. Try simpler commands first", msg),
         }
     }
 }
@@ -144,8 +144,7 @@ pub async fn run_angreal_command(command: &str, args: &[String]) -> Result<Strin
     // Parse command to handle potential subcommands
     let all_args = parse_command_and_args(command, args)?;
 
-    // Log the full command for debugging
-    eprintln!("Executing: angreal {}", all_args.join(" "));
+    // Prepare to execute angreal command
 
     let output = Command::new("angreal")
         .args(&all_args)
