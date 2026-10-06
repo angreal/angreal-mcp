@@ -1,3 +1,24 @@
+> **This server is retired and receives no updates.** angreal now ships a
+> built-in MCP server: `angreal mcp`. Use it instead of `angreal_mcp`.
+>
+> Add it to your project's `.mcp.json`:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "angreal": {
+>       "command": "angreal",
+>       "args": ["mcp"]
+>     }
+>   }
+> }
+> ```
+>
+> See [Connect an AI assistant](https://angreal.github.io/angreal/how-to-guides/connect-an-ai-assistant/)
+> and the [`angreal mcp` CLI reference](https://angreal.github.io/angreal/reference/cli/).
+> This repository is archived and kept read-only. The `angreal_mcp` crate stays on
+> crates.io, so existing installs keep working.
+
 # Angreal MCP Server
 
 An MCP (Model Context Protocol) server that provides AI assistants with discovery capabilities for [angreal](https://github.com/angreal/angreal) projects.
